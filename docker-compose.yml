@@ -1,0 +1,134 @@
+services:
+
+  gateway:
+    build: ./api-gateway
+    container_name: petdate-api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      SERVER_PORT: 8080
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@petdate-db:27017/${MONGO_DATABASE}?authSource=admin
+    depends_on:
+      ms-usuarios:
+        condition: service_started
+      ms-mascotas:
+        condition: service_started
+      ms-servicios:
+        condition: service_started
+      ms-citas-medicas:
+        condition: service_started
+      ms-comentarios:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - petdate-network
+
+  ms-usuarios:
+    build:
+      context: ./ms-usuarios
+      dockerfile: Dockerfile
+    container_name: petdate-ms-usuarios
+    expose:
+      - "8081"
+    environment:
+      SERVER_PORT: 8081
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@petdate-db:27017/${MONGO_DATABASE}?authSource=admin
+      MS_MASCOTAS_URL: http://ms-mascotas:8082
+      MS_CITAS_MEDICAS_URL: http://ms-citas-medicas:8084
+      MS_COMENTARIOS_URL: http://ms-comentarios:8085
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+      ADMIN_EMAIL: ${ADMIN_EMAIL}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD}
+    restart: on-failure
+    networks:
+      - petdate-network
+    volumes:
+      - petdate-uploads:/app/uploads
+
+  ms-mascotas:
+    build:
+      context: ./ms-mascotas
+      dockerfile: Dockerfile
+    container_name: petdate-ms-mascotas
+    expose:
+      - "8082"
+    environment:
+      SERVER_PORT: 8082
+      MS_USUARIOS_URL: http://ms-usuarios:8081
+      MS_CITAS_MEDICAS_URL: http://ms-citas-medicas:8084
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@petdate-db:27017/${MONGO_DATABASE}?authSource=admin
+    restart: on-failure
+    networks:
+      - petdate-network
+    volumes:
+      # Volumen de imagenes compartido (servidor de imagenes en Data/docker-compose.yml).
+      # ms-mascotas escribe en uploads/mascotas/, igual que antes.
+      - petdate-uploads:/app/uploads
+
+  ms-servicios:
+    build:
+      context: ./ms-servicios
+      dockerfile: Dockerfile
+    container_name: petdate-ms-servicios
+    expose:
+      - "8083"
+    environment:
+      SERVER_PORT: 8083
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@petdate-db:27017/${MONGO_DATABASE}?authSource=admin
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    restart: on-failure
+    networks:
+      - petdate-network
+    volumes:
+      # Mismo volumen de imagenes compartido: ms-servicios escribe en
+      # uploads/servicios/ y uploads/blogs/
+      - petdate-uploads:/app/uploads
+
+  ms-citas-medicas:
+    build:
+      context: ./ms-citas-medicas
+      dockerfile: Dockerfile
+    container_name: petdate-ms-citas-medicas
+    expose:
+      - "8084"
+    environment:
+      SERVER_PORT: 8084
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@petdate-db:27017/${MONGO_DATABASE}?authSource=admin
+      MS_MASCOTAS_URL: http://ms-mascotas:8082
+      MS_USUARIOS_URL: http://ms-usuarios:8081
+    restart: on-failure
+    networks:
+      - petdate-network
+
+  ms-comentarios:
+    build:
+      context: ./ms-comentarios
+      dockerfile: Dockerfile
+    container_name: petdate-ms-comentarios
+    expose:
+      - "8085"
+    environment:
+      SERVER_PORT: 8085
+      SPRING_DATA_MONGODB_URI: mongodb://${MONGO_USER}:${MONGO_PASSWORD}@petdate-db:27017/${MONGO_DATABASE}?authSource=admin
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    restart: on-failure
+    networks:
+      - petdate-network
+
+volumes:
+  # Volumen de imagenes compartido, definido y servido desde Data/docker-compose.yml
+  # (servicio "imagen-server" junto a la base de datos). Se referencia como
+  # external porque pertenece a ese stack.
+  petdate-uploads:
+    external: true
+    name: petdate-uploads
+
+networks:
+  petdate-network:
+    external: true
