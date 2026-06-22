@@ -1,0 +1,77 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: api-gateway
+
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+
+  mongodb:
+    uri: ${SPRING_DATA_MONGODB_URI}
+
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+
+              - id: auth-servicios
+                uri: http://ms-servicios:8083
+                predicates:
+                  - Path=/auth/servicios/**
+
+              - id: auth
+                uri: http://ms-usuarios:8081
+                predicates:
+                  - Path=/auth/**
+
+              - id: ms-usuarios
+                uri: http://ms-usuarios:8081
+                predicates:
+                  - Path=/usuarios/**
+
+              - id: uploads
+                uri: http://imagen-server:80
+                predicates:
+                  - Path=/uploads/**
+
+              - id: ms-mascotas
+                uri: http://ms-mascotas:8082
+                predicates:
+                  - Path=/mascotas/**
+
+              - id: ms-servicios
+                uri: http://ms-servicios:8083
+                predicates:
+                  - Path=/servicios/**
+
+              - id: ms-promociones
+                uri: http://ms-servicios:8083
+                predicates:
+                  - Path=/promociones/**
+
+              - id: ms-blogs
+                uri: http://ms-servicios:8083
+                predicates:
+                  - Path=/blogs/**
+
+              - id: ms-comentarios
+                uri: http://ms-comentarios:8085
+                predicates:
+                  - Path=/comentarios/**
+
+              - id: ms-contacto
+                uri: http://ms-comentarios:8085
+                predicates:
+                  - Path=/contacto/**
+
+              - id: ms-citas-medicas
+                uri: http://ms-citas-medicas:8084
+                predicates:
+                  - Path=/citas/**
+
+jwt:
+  secret: ${JWT_SECRET}

@@ -1,0 +1,77 @@
+name: Deploy Backend to EKS
+
+on:
+  push:
+    branches: [ deploy ]
+
+env:
+  AWS_REGION: us-east-1
+  EKS_CLUSTER_NAME: petdate-cluster
+
+jobs:
+  build-and-deploy:
+    name: Build, Push and Deploy (${{ matrix.service }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - service: api-gateway
+            context: api-gateway
+            manifest: k8s/backend/api-gateway.yaml
+          - service: ms-usuarios
+            context: ms-usuarios
+            manifest: k8s/backend/ms-usuarios.yaml
+          - service: ms-mascotas
+            context: ms-mascotas
+            manifest: k8s/backend/ms-mascotas.yaml
+          - service: ms-servicios
+            context: ms-servicios
+            manifest: k8s/backend/ms-servicios.yaml
+          - service: ms-citas-medicas
+            context: ms-citas-medicas
+            manifest: k8s/backend/ms-citas-medicas.yaml
+          - service: ms-comentarios
+            context: ms-comentarios
+            manifest: k8s/backend/ms-comentarios.yaml
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build, tag and push image to ECR
+        id: build-image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: repo_petdate_${{ matrix.service }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./${{ matrix.context }}
+          docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name ${{ env.EKS_CLUSTER_NAME }} --region ${{ env.AWS_REGION }}
+
+      - name: Deploy to EKS
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_REPOSITORY: repo_petdate_${{ matrix.service }}
+          IMAGE_TAG: ${{ github.sha }}
+        run: |
+          sed -i "s|ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/repo_petdate_${{ matrix.service }}:\${IMAGE_TAG}|$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG|g" ${{ matrix.manifest }}
+          kubectl apply -f ${{ matrix.manifest }}
+          kubectl rollout status deployment/${{ matrix.service }} -n petdate --timeout=180s
+
+      - name: Show rollout summary
+        run: kubectl get pods -n petdate -l app=${{ matrix.service }} -o wide

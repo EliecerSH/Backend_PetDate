@@ -1,0 +1,31 @@
+server:
+  port: ${SERVER_PORT:8084}
+
+spring:
+  application:
+    name: ms-citas-medicas
+
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI}
+
+  mongodb:
+    uri: ${SPRING_DATA_MONGODB_URI}
+
+ms-usuarios:
+  url: ${MS_USUARIOS_URL:http://localhost:8081}
+
+ms-mascotas:
+  url: ${MS_MASCOTAS_URL:http://localhost:8082}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+  health:
+    mail:
+      enabled: false

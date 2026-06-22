@@ -1,0 +1,82 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api-gateway
+  namespace: petdate
+  labels:
+    app: api-gateway
+    tier: app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: api-gateway
+  template:
+    metadata:
+      labels:
+        app: api-gateway
+        tier: app
+    spec:
+      nodeSelector:
+        tier: app
+      containers:
+        - name: api-gateway
+          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/repo_petdate_api-gateway:${IMAGE_TAG}
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SERVER_PORT
+              value: "8080"
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef: { name: petdate-secrets, key: JWT_SECRET }
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom:
+                secretKeyRef: { name: petdate-secrets, key: SPRING_DATA_MONGODB_URI }
+          resources:
+            requests: { cpu: "150m", memory: "384Mi" }
+            limits: { cpu: "500m", memory: "768Mi" }
+          readinessProbe:
+            httpGet: { path: /actuator/health, port: 8080 }
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /actuator/health, port: 8080 }
+            initialDelaySeconds: 45
+            periodSeconds: 15
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-gateway
+  namespace: petdate
+  labels:
+    app: api-gateway
+spec:
+  type: ClusterIP     
+  selector:
+    app: api-gateway
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 8080
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: api-gateway-hpa
+  namespace: petdate
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: api-gateway
+  minReplicas: 1
+  maxReplicas: 6
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50 

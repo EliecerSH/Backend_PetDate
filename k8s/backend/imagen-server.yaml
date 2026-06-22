@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: imagen-server
+  namespace: petdate
+  labels: { app: imagen-server, tier: app }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: imagen-server } }
+  template:
+    metadata: { labels: { app: imagen-server, tier: app } }
+    spec:
+      nodeSelector: { tier: app }
+      containers:
+        - name: imagen-server
+          image: nginx:1.27-alpine
+          ports: [{ containerPort: 80 }]
+          volumeMounts:
+            - name: uploads
+              mountPath: /usr/share/nginx/html/uploads
+              readOnly: true
+          resources:
+            requests: { cpu: "50m", memory: "64Mi" }
+            limits: { cpu: "200m", memory: "128Mi" }
+      volumes:
+        - name: uploads
+          persistentVolumeClaim: { claimName: petdate-uploads-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: imagen-server, namespace: petdate }
+spec:
+  type: ClusterIP
+  selector: { app: imagen-server }
+  ports: [{ protocol: TCP, port: 80, targetPort: 80 }]

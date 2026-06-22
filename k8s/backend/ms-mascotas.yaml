@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ms-mascotas
+  namespace: petdate
+  labels: { app: ms-mascotas, tier: app }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: ms-mascotas } }
+  template:
+    metadata: { labels: { app: ms-mascotas, tier: app } }
+    spec:
+      nodeSelector: { tier: app }
+      containers:
+        - name: ms-mascotas
+          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/repo_petdate_ms-mascotas:${IMAGE_TAG}
+          ports: [{ containerPort: 8082 }]
+          envFrom:
+            - configMapRef: { name: petdate-config }
+          env:
+            - name: SERVER_PORT
+              value: "8082"
+            - name: SPRING_DATA_MONGODB_URI
+              valueFrom: { secretKeyRef: { name: petdate-secrets, key: SPRING_DATA_MONGODB_URI } }
+          volumeMounts:
+            - name: uploads
+              mountPath: /app/uploads
+          resources:
+            requests: { cpu: "150m", memory: "384Mi" }
+            limits: { cpu: "500m", memory: "768Mi" }
+          readinessProbe: { httpGet: { path: /actuator/health, port: 8082 }, initialDelaySeconds: 30, periodSeconds: 10 }
+          livenessProbe: { httpGet: { path: /actuator/health, port: 8082 }, initialDelaySeconds: 45, periodSeconds: 15 }
+      volumes:
+        - name: uploads
+          persistentVolumeClaim: { claimName: petdate-uploads-pvc }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: ms-mascotas, namespace: petdate }
+spec:
+  type: ClusterIP
+  selector: { app: ms-mascotas }
+  ports: [{ protocol: TCP, port: 8082, targetPort: 8082 }]
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata: { name: ms-mascotas-hpa, namespace: petdate }
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: ms-mascotas }
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 50 } }
