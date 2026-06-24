@@ -31,8 +31,7 @@ spec:
               valueFrom:
                 secretKeyRef: { name: petdate-secrets, key: JWT_SECRET }
             - name: SPRING_DATA_MONGODB_URI
-              valueFrom:
-                secretKeyRef: { name: petdate-secrets, key: SPRING_DATA_MONGODB_URI }
+              valueFrom: { secretKeyRef: { name: petdate-secrets, key: SPRING_DATA_MONGODB_URI } }
           resources:
             requests: { cpu: "150m", memory: "384Mi" }
             limits: { cpu: "500m", memory: "768Mi" }
