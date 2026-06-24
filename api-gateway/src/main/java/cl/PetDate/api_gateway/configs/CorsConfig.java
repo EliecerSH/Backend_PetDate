@@ -21,7 +21,7 @@ public class CorsConfig implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
 
         String origin = request.getHeader("Origin");
-        if (origin != null && origin.startsWith("http://32.193.36.96")) {
+        if (origin != null && origin.startsWith("http://adde9fe2598c845febc5ceebdf807303-deeac08cb30e4d41.elb.us-east-1.amazonaws.com")) {
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else {
             response.setHeader("Access-Control-Allow-Origin", "http://30129");
