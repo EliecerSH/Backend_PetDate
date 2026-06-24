@@ -90,6 +90,8 @@ public class JwtAuthFilter implements HandlerInterceptor {
     private boolean esRutaPublica(String path, String method) {
         if (method.equals("OPTIONS"))
             return true;
+        if (path.startsWith("/actuator"))
+        return true;
         if (path.startsWith("/auth/"))
             return true;
         if (path.equals("/error"))
