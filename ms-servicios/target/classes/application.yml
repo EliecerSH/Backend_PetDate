@@ -7,13 +7,25 @@ spring:
 
   data:
     mongodb:
-      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/db-PetDate}
+      uri: ${SPRING_DATA_MONGODB_URI}
 
   mongodb:
-    uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/db-PetDate}
+    uri: ${SPRING_DATA_MONGODB_URI}
+
+  mail:
+    host: ${MAIL_HOST:smtp.gmail.com}
+    port: ${MAIL_PORT:587}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
 jwt:
-    secret: ${JWT_SECRET}
+  secret: ${JWT_SECRET}
 
 management:
   endpoints:
@@ -23,3 +35,6 @@ management:
   endpoint:
     health:
       show-details: never
+  health:
+    mail:
+      enabled: false

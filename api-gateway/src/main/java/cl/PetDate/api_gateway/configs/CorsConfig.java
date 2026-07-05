@@ -21,10 +21,10 @@ public class CorsConfig implements Filter {
         HttpServletResponse response = (HttpServletResponse) res;
 
         String origin = request.getHeader("Origin");
-        if (origin != null && origin.startsWith("http://adde9fe2598c845febc5ceebdf807303-deeac08cb30e4d41.elb.us-east-1.amazonaws.com")) {
+        if (origin != null && origin.startsWith("http://a9c0ea223337c413d8b95918b05101aa-89672909d7c7a9a3.elb.us-east-1.amazonaws.com")) {
             response.setHeader("Access-Control-Allow-Origin", origin);
         } else {
-            response.setHeader("Access-Control-Allow-Origin", "http://30129");
+            response.setHeader("Access-Control-Allow-Origin", "http://54.197.72.30");
         }
 
         response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
